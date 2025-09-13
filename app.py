@@ -24,6 +24,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import discord
 import yaml
 import re
+import random
+import requests
+import json
+from datetime import date
 from discord.ext import commands
 from bin.wordle_api_handler import WordleAPI
 
@@ -68,6 +72,8 @@ Calculated Score: {data['calculated_score']}
 Hard Mode: {'Y' if data['hard_mode'] == 1 else 'N'}
 """
             await message.channel.send(msg)
+    
+    await bot.process_commands(message)
         
 
 # ---
@@ -112,5 +118,55 @@ async def update(ctx, name: str = False):
         return False
     data = wordle.update_registration(name, 'discord', ctx.message.author.name)
     await ctx.send(f"Successfully updated @{data['player_uuid']} to {data['player_name']}")
+
+@bot.command()
+async def leaderboard(ctx):
+    data = wordle.leaderboard()
+    webhook = {
+        "content": f"Current Wordle Leaderboard ({date.today()})",
+        "embeds": [],
+        "attachments": []
+    }
+
+    i = 0
+    n = 0
+    last_ord = False
+    round_digits = 3
+    for player in data:
+        if player['player_ord'] == last_ord:
+            n += 1
+        else:
+            i += 1 + n
+            n = 0
+            last_ord = player['player_ord']
+        lb_entry = {
+            "title": f"{i}. {player['player_name']}",
+            "color": random.randint(0, 16777215),
+            "fields": [
+                {
+                    "name": f"Ordinal: {round(player['player_ord'], round_digits)}",
+                    "value": f"Δ {round(player['ord_delta'], round_digits)}",
+                    "inline": True
+                },
+                {
+                    "name": f"ELO: {round(player['player_elo'], round_digits)}",
+                    "value": f"Δ {round(player['elo_delta'], round_digits)}",
+                    "inline": True
+                },
+                {
+                    "name": f"Mu: {round(player['player_mu'], round_digits)}",
+                    "value": f"Δ {round(player['mu_delta'], round_digits)}",
+                    "inline": True
+                },
+                {
+                    "name": f"Sigma: {round(player['player_sigma'], round_digits)}",
+                    "value": f"Δ {round(player['sigma_delta'], round_digits)}",
+                    "inline": True
+                }
+            ]
+        }
+        webhook['embeds'].append(lb_entry)
+    
+    res = requests.post(config['discord']['webhook'], data=json.dumps(webhook), headers={'Content-Type': 'application/json'})
 
 bot.run(config['discord']['token'])

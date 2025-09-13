@@ -74,3 +74,7 @@ class WordleAPI:
     def blame(self, uuid: str, puzzle: int):
         req = requests.get(f"{self.base_url}/blame/{uuid}?puzzle={puzzle}", headers=self.create_headers())
         return req.json()
+    
+    def leaderboard(self):
+        req = requests.get(f"{self.base_url}/leaderboard", headers=self.create_headers())
+        return req.json()

@@ -1,0 +1,6 @@
+wordle:
+  username: ""
+  password: ""
+  base_url: ""
+discord:
+  token: ""

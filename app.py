@@ -17,3 +17,100 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
+# ---
+# Imports
+# ---
+import discord
+import yaml
+import re
+from discord.ext import commands
+from bin.wordle_api_handler import WordleAPI
+
+# ---
+# Data Definition & Library Configuration
+# ---
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+description = "A Discord Bot to handle Competitive Ranked Wordle play :)"
+
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+# client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!", description=description, intents=intents)
+
+wordle = WordleAPI(config)
+
+# ---
+# Discord Bot Events
+# ---
+@bot.event
+async def on_ready():
+    print(f'We have logged in as {bot.user}')
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+
+    if str(message.channel) == 'wordle-dev':
+        if re.match(r'Wordle ([\d,]+) ([\dX])\/6(\*?)', message.content[0:16]):
+            data = wordle.add_score(message.content, message.author.name)
+            if data.get('status', 200) == 409:
+                msg = f"You have already submitted your Wordle score today. In the future, you can reference your score by typing `!score` with the puzzle number, ex. `!score 1546`"
+            else:
+                msg = f"""Wordle Score for {data['player_name']}
+Puzzle: {data['puzzle']}
+Score: {data['score']}
+Calculated Score: {data['calculated_score']}
+Hard Mode: {'Y' if data['hard_mode'] == 1 else 'N'}
+"""
+            await message.channel.send(msg)
+        
+
+# ---
+# Bot Commands
+# ---
+@bot.command()
+async def score(ctx, puzzle: int, player: str = False):
+    if player == False:
+        player = ctx.message.author.name
+    data = wordle.check_score(player, puzzle)
+    if data.get('status', 200) == 404:
+        msg = f"{player} did not play Wordle #{puzzle}"
+    else:
+        msg = f"""{data['player_information']['player_name']}'s Performance on Wordle #{puzzle}:
+{data['raw_score']}
+
+With a raw score of {data['score']}, that brings their calculated score to: {data['calculated_score']}
+"""
+    await ctx.send(msg)
+
+@bot.command()
+async def blame(ctx, puzzle: int, player: str = False):
+    if player == False:
+        player = ctx.message.author.name
+    data = wordle.blame(player, puzzle)
+    await ctx.send(data['msg'])
+
+@bot.command()
+async def register(ctx, name: str = False):
+    if name == False:
+        name = ctx.message.author.name
+    data = wordle.register(name, 'discord', ctx.message.author.name)
+    if data.get('status', 200) == 409:
+        await ctx.send(f"@{ctx.message.author.name} is already registered to play Wordle!")
+    else:
+        await ctx.send(f"Successfully registered @{data['player_uuid']} as {data['player_name']}")
+
+@bot.command()
+async def update(ctx, name: str = False):
+    if name == False:
+        await ctx.send("Please include a name to update the registration to, ex: `!update WordleBot`")
+        return False
+    data = wordle.update_registration(name, 'discord', ctx.message.author.name)
+    await ctx.send(f"Successfully updated @{data['player_uuid']} to {data['player_name']}")
+
+bot.run(config['discord']['token'])

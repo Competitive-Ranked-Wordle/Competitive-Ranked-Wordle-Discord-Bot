@@ -45,3 +45,24 @@ $ mv config.yml.sample config.yml
 `docker run -d --name crw-discord-bot -v /docker/crw-discord-bot:/data -e CONFIG_FILE=/data/config.yml crw-discord-bot`
 
 6. Log in to your Discord server, and register with `!register` to ensure that the bot has connected and is operational
+
+7. Edit the server crontab to enable reporting functionality
+
+```crontab
+# Sample Wordle Schedule
+# 12:30AM: Calculate rankings for the previous day
+# 3:00AM: Update the leaderboard
+# 9:00AM: Post the daily ratings (Mon - Sat), Weekly rankings (Sun)
+# 5:00PM: Post the daily rankings
+
+# Wordle Daily Calculations
+30 0 * * * docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py calculate_daily >/dev/null 2>&1
+# Wordle Daily Leaderboard Update
+0 3 * * * docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py leaderboard >/dev/null 2>&1
+# Wordle Daily Ranks
+0 17 * * * docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py daily_ranks >/dev/null 2>&1
+# Wordle Summary (Mon - Sat)
+0 9 * * 1-6 docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py daily_summary >/dev/null 2>&1
+# Wordle Summary (Sun)
+0 9 * * 0 docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py weekly_summary >/dev/null 2>&1
+```

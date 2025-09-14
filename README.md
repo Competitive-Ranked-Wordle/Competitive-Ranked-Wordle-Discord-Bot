@@ -56,13 +56,13 @@ $ mv config.yml.sample config.yml
 # 5:00PM: Post the daily rankings
 
 # Wordle Daily Calculations
-30 0 * * * docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py calculate_daily >/dev/null 2>&1
+30 0 * * * docker exec -t crw-discord-bot python3 /wordlebot/bin/backend_handler.py calculate_daily >/dev/null 2>&1
 # Wordle Daily Leaderboard Update
-0 3 * * * docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py leaderboard >/dev/null 2>&1
+0 3 * * * docker exec -t crw-discord-bot python3 /wordlebot/bin/backend_handler.py leaderboard >/dev/null 2>&1
 # Wordle Daily Ranks
-0 17 * * * docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py daily_ranks >/dev/null 2>&1
+0 17 * * * docker exec -t crw-discord-bot python3 /wordlebot/bin/backend_handler.py daily_ranks >/dev/null 2>&1
 # Wordle Summary (Mon - Sat)
-0 9 * * 1-6 docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py daily_summary >/dev/null 2>&1
+0 9 * * 1-6 docker exec -t crw-discord-bot python3 /wordlebot/bin/backend_handler.py daily_summary >/dev/null 2>&1
 # Wordle Summary (Sun)
-0 9 * * 0 docker exec -it crw-discord-bot python3 /wordlebot/bin/backend_handler.py weekly_summary >/dev/null 2>&1
+0 9 * * 0 docker exec -t crw-discord-bot python3 /wordlebot/bin/backend_handler.py weekly_summary >/dev/null 2>&1
 ```

@@ -109,7 +109,7 @@ class WordleCalculations:
 
 
     def weekly_summary(self):
-        res = self.wordle.weekly_summary(self.today)
+        res = self.wordle.weekly_summary(self.yesterday)
         if res.get('status', 200) == 404:
             return False
         webhook = {

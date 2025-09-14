@@ -78,3 +78,19 @@ class WordleAPI:
     def leaderboard(self):
         req = requests.get(f"{self.base_url}/leaderboard", headers=self.create_headers())
         return req.json()
+    
+    def calculate_daily(self, puzzle_date: str):
+        req = requests.get(f"{self.base_url}/calculate-daily/?puzzle_date={puzzle_date}", headers=self.create_headers())
+        return req.json()
+
+    def daily_ranks(self, report_date: str):
+        req = requests.get(f"{self.base_url}/daily-ranks/?report_date={report_date}", headers=self.create_headers())
+        return req.json()
+    
+    def daily_summary(self, report_date: str):
+        req = requests.get(f"{self.base_url}/daily-summary/?report_date={report_date}", headers=self.create_headers())
+        return req.json()
+    
+    def weekly_summary(self, report_date: str):
+        req = requests.get(f"{self.base_url}/weekly-summary/?end_date={report_date}", headers=self.create_headers())
+        return req.json()

@@ -205,13 +205,16 @@ class WordleCalculations:
 if __name__ == '__main__':
     import yaml
     import argparse
+    import os
 
     parser = argparse.ArgumentParser(description='Competitive Ranked Wordle Backend Calculations Script')
     parser.add_argument('mode', choices=['calculate_daily', 'daily_ranks', 'daily_summary', 'weekly_summary', 'leaderboard'])
     parser.add_argument('--config', default='config.yml')
 
     args = parser.parse_args()
-    with open(args.config, 'r') as f:
+
+    config_file = os.getenv('CONFIG_FILE', args.config)
+    with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
 
     wordle = WordleAPI(config)

@@ -24,9 +24,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import discord
 import yaml
 import re
-import random
-import requests
-import json
+import os
 from datetime import date
 from discord.ext import commands
 from bin.wordle_api_handler import WordleAPI
@@ -34,7 +32,8 @@ from bin.wordle_api_handler import WordleAPI
 # ---
 # Data Definition & Library Configuration
 # ---
-with open('config.yml', 'r') as f:
+config_file = os.getenv('CONFIG_FILE', 'config.yml')
+with open(config_file, 'r') as f:
     config = yaml.safe_load(f)
 
 description = "A Discord Bot to handle Competitive Ranked Wordle play :)"

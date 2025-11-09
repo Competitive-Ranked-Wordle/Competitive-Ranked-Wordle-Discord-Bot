@@ -61,8 +61,9 @@ async def on_message(message):
     if str(message.channel) == 'general':
         if re.match(r'Wordle ([\d,]+) ([\dX])\/6(\*?)', message.content[0:16]):
             data = wordle.add_score(message.content, message.author.name)
-            if data.get('status', 200) == 409:
-                msg = f"You have already submitted your Wordle score today. In the future, you can reference your score by typing `!score` with the puzzle number, ex. `!score 1546`"
+            if data.get('status', 500) != 200:
+                response = f"Error {data.get('status', 500)} from server, please contact a Wordle admin."
+                msg = data.get('msg', response)
             else:
                 msg = f"""Wordle Score for {data['player_name']}
 Puzzle: {data['puzzle']}

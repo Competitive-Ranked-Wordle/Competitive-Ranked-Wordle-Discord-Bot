@@ -93,7 +93,7 @@ class WordleBot(commands.Cog):
                     desired_thread = None
 
                     for thread in active_threads:
-                        if thread.name == self.gen_thread_name(date.today() - timedelta(days=1)):
+                        if thread.name == self.gen_thread_name(date.today()):
                             desired_thread = thread
 
                     if desired_thread == None:

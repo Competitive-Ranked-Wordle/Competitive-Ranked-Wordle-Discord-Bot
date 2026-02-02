@@ -97,7 +97,7 @@ class WordleBot(commands.Cog):
                             desired_thread = thread
 
                     if desired_thread == None:
-                        desired_thread = self.create_new_thread()
+                        desired_thread = await self.create_new_thread()
 
                     await desired_thread.add_user(message.author)
                     # await desired_thread.send(f"{message.author.mention} has been added to the thread.")

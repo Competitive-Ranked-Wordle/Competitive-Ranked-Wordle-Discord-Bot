@@ -4,8 +4,7 @@ wordle:
   base_url: ""
 discord:
   token: ""
-  leaderboard_webhook: ""
-  general_webhook: ""
-  report_webhook: ""
-  dev_webhook: ""
-  leaderboard_message: ""
+  general_channel_id: ""
+  leaderboard_channel_id: ""
+  report_channel_id: ""
+  logging_channel_id: ""

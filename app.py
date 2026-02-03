@@ -25,13 +25,25 @@ import discord
 import yaml
 import re
 import os
+import json
 from datetime import date, time, timedelta
 from zoneinfo import ZoneInfo
 from discord.ext import commands, tasks
 from bin.wordle_api_handler import WordleAPI
 
+# Wordle Schedule
+# 12:01AM: Rollover spoiler thread
+# 12:30AM: Calculate rankings for the previous day
+# 3:00AM: Update the leaderboard
+# 9:00AM: Post the daily ratings (Mon - Sat), Weekly rankings (Sun)
+# 5:00PM: Post the daily rankings
+
 tz_eastern = ZoneInfo('America/New_York')
-wordle_rollover = time(hour=0, minute=1, second=0, tzinfo=tz_eastern)
+time_rollover = time(hour=0, minute=1, second=0, tzinfo=tz_eastern)
+time_calculate = time(hour=0, minute=30, second=0, tzinfo=tz_eastern)
+time_leaderboard = time(hour=3, minute=0, second=0, tzinfo=tz_eastern)
+time_ratings = time(hour=9, minute=0, second=0, tzinfo=tz_eastern)
+time_rankings = time(hour=17, minute=0, second=0, tzinfo=tz_eastern)
 
 class WordleBot(commands.Cog):
     def __init__(self, bot, config):
@@ -39,7 +51,12 @@ class WordleBot(commands.Cog):
         self.config = config
         self.wordle = WordleAPI(self.config)
 
+        self.round_digits = 3
+
         self.general = int(config['discord']['general_channel_id'])
+        self.lb = int(config['discord']['leaderboard_channel_id'])
+        self.report = int(config['discord']['report_channel_id'])
+        self.logging =int(config['discord']['logging_channel_id'])
 
         self.create_new_thread.start()
 
@@ -47,6 +64,12 @@ class WordleBot(commands.Cog):
         first_wordle = date(2021, 6, 19)
         delta = today - first_wordle
         return delta.days
+    
+    def format_value(self, value: float):
+        if value == None:
+            return 0
+        else:
+            return round(value, self.round_digits)
     
     def gen_thread_name(self, today):
         puzzle = self.get_wordle_puzzle(today)
@@ -75,7 +98,6 @@ class WordleBot(commands.Cog):
     async def on_ready(self):
         print(f"WordleBot Loaded")
 
-    # @bot.event
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author == bot.user:
@@ -106,7 +128,17 @@ class WordleBot(commands.Cog):
     # ---
     # Scheduled Tasks
     # ---
-    @tasks.loop(time=wordle_rollover)
+    @tasks.loop(time=time_calculate)
+    async def calculate_daily(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        channel = self.bot.get_channel(self.logging)
+
+        res = self.wordle.calculate_daily(yesterday)
+
+        channel.send(json.dumps(res, indent=4))
+
+    @tasks.loop(time=time_rollover)
     async def create_new_thread(self):
         channel = self.bot.get_channel(self.general)
         puzzle = self.get_wordle_puzzle(date.today())
@@ -127,12 +159,136 @@ class WordleBot(commands.Cog):
             )
             await thread.send(f"Thread for Wordle {puzzle} created! Please keep all spoilers to this thread.")
         return thread
+    
+    @tasks.loop(time=time_rankings)
+    async def daily_ranks(self):
+        today = date.today()
+        res = self.wordle.daily_ranks(today)
+        channel = self.bot.get_channel(self.general)
+
+        if res.get('status', 200) == 404:
+            return False
+
+        embed = discord.Embed(title=f"{today}: Wordle Rankings")
+
+        for player in res['raw_data']:
+            embed.add_field(
+                name=f"{player['rank']}. {player['player_name']}",
+                value=f"Hard Mode: {player['hard_mode']}",
+                inline=False
+            )
+
+        await channel.send(embed=embed)
+    
+    @tasks.loop(time=time_ratings)
+    async def daily_summary(self):
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        channel = self.bot.get_channel(self.report)
+
+        if date.weekday() == 6:
+            res = self.wordle.weekly_summary(yesterday)
+            if res.get('status', 200) == 404:
+                return False
+            
+            embed = discord.Embed(title=f"**{today}: Weekly Wordle Rankings**")
+
+            i = 0
+            n = 0
+            last_ord = False
+            for player, stats in res['sorted_player_stats'].items():
+                if stats['end_ord'] == last_ord:
+                    n += 1
+                else:
+                    last_ord = stats['end_ord']
+                    i += 1 + n
+                    n = 0
+
+
+                data_points = [
+                    f"Ordinal: {self.format_value(stats['start_ord'])} -> {self.format_value(stats['end_ord'])} (Δ {self.format_value(stats['ord_change'])})",
+                    f"ELO: {self.format_value(stats['start_elo'])} -> {self.format_value(stats['end_elo'])} (Δ {self.format_value(stats['elo_change'])})",
+                    f"Average Score: {stats['average_score']}"
+                ]
+
+                embed.add_field(
+                    name=f"{i}. {player}",
+                    value='\n'.join(data_points),
+                    inline=False
+                )
+
+            await channel.send(embed=embed)
+        else:
+            res = self.wordle.daily_summary(today)
+            
+
+            if res.get('status', 200) == 404:
+                return False
+            
+            embed = discord.Embed(title=f"**{today}: Wordle Rankings**")
+
+            i = 0
+            n = 0
+            last_ord = False
+            for player, stats in res['sorted_player_stats'].items():
+                if stats['end_ord'] == last_ord:
+                    n += 1
+                else:
+                    last_ord = stats['end_ord']
+                    i += 1 + n
+                    n = 0
+                
+                data_points = [
+                    f"Ordinal: {self.format_value(stats['end_ord'])} (Δ {self.format_value(stats['ord_change'])})",
+                    f"ELO: {self.format_value(stats['end_elo'])} (Δ {self.format_value(stats['elo_change'])})",
+                ]
+
+                embed.add_field(
+                    name=f"{i}. {player}",
+                    value='\n'.join(data_points),
+                    inline=False
+                )
+
+            await channel.send(embed=embed)
+
+    @tasks.loop(time=time_leaderboard)
+    async def leaderboard(self):
+        today = date.today()
+        data = self.wordle.leaderboard()
+        channel = self.bot.get_channel(self.lb)
+
+        embed = discord.Embed(title=f"Wordle Leaderboard ({today})")
+
+        i = 0
+        n = 0
+        last_ord = False
+        for player in data:
+            if player['player_ord'] == last_ord:
+                n += 1
+            else:
+                i += 1 + n
+                n = 0
+                last_ord = player['player_ord']
+            
+            data_points = [
+                f"Ordinal: {self.format_value(player['player_ord'])} (Δ {self.format_value(player['ord_delta'])})",
+                f"ELO: {self.format_value(player['player_elo'])} (Δ {self.format_value(player['elo_delta'])})",
+                f"Mu: {self.format_value(player['player_mu'])} (Δ {self.format_value(player['mu_delta'])})",
+                f"Sigma: {self.format_value(player['player_sigma'])} (Δ {self.format_value(player['sigma_delta'])})",
+            ]
+
+            embed.add_field(
+                name=f"{i}. {player['player_name']}",
+                value='\n'.join(data_points),
+                inline=True
+            )
+
+        await channel.send(embed=embed)
 
     # ---
     # Commands
     # ---
 
-    # @bot.command()
     @commands.command()
     async def score(self, ctx, puzzle: int, player: str = False):
         if player == False:
@@ -145,7 +301,6 @@ class WordleBot(commands.Cog):
             await ctx.send(embed=self.gen_score_response(player, data))
         
     
-    # @bot.command()
     @commands.command()
     async def blame(self, ctx, puzzle: int, player: str = False):
         if player == False:
@@ -156,7 +311,6 @@ class WordleBot(commands.Cog):
         )
         await ctx.send(embed=embed)
 
-    # @bot.command()
     @commands.command()
     async def register(self, ctx, name: str = False):
         if name == False:
@@ -167,7 +321,6 @@ class WordleBot(commands.Cog):
         else:
             await ctx.send(f"Successfully registered @{data['player_uuid']} as {data['player_name']}")
 
-    # @bot.command()
     @commands.command()
     async def update(self, ctx, name: str = False):
         if name == False:

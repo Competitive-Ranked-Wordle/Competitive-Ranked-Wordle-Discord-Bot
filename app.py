@@ -58,7 +58,11 @@ class WordleBot(commands.Cog):
         self.report = int(config['discord']['report_channel_id'])
         self.logging =int(config['discord']['logging_channel_id'])
 
+        self.calculate_daily.start()
         self.create_new_thread.start()
+        self.daily_ranks.start()
+        self.daily_summary.start()
+        self.leaderboard.start()
 
     def get_wordle_puzzle(self, today):
         first_wordle = date(2021, 6, 19)

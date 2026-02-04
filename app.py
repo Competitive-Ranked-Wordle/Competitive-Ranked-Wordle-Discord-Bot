@@ -190,7 +190,7 @@ class WordleBot(commands.Cog):
         yesterday = today - timedelta(days=1)
         channel = self.bot.get_channel(self.report)
 
-        if date.weekday() == 6:
+        if today.weekday() == 6:
             res = self.wordle.weekly_summary(yesterday)
             if res.get('status', 200) == 404:
                 return False

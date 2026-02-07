@@ -140,7 +140,7 @@ class WordleBot(commands.Cog):
 
         res = self.wordle.calculate_daily(yesterday)
 
-        channel.send(json.dumps(res, indent=4))
+        await channel.send(json.dumps(res, indent=4))
 
     @tasks.loop(time=time_rollover)
     async def create_new_thread(self):
@@ -349,6 +349,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
-    await bot.add_cog(WordleBot(bot, config))
+    if "WordleBot" in bot.cogs:
+        print("WordleBot cog already loading, skipping...")
+    else:
+        await bot.add_cog(WordleBot(bot, config))
 
 bot.run(config['discord']['token'])

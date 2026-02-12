@@ -38,12 +38,11 @@ from bin.wordle_api_handler import WordleAPI
 # 9:00AM: Post the daily ratings (Mon - Sat), Weekly rankings (Sun)
 # 5:00PM: Post the daily rankings
 
-tz_eastern = ZoneInfo('America/New_York')
-time_rollover = time(hour=0, minute=1, second=0, tzinfo=tz_eastern)
-time_calculate = time(hour=0, minute=30, second=0, tzinfo=tz_eastern)
-time_leaderboard = time(hour=3, minute=0, second=0, tzinfo=tz_eastern)
-time_ratings = time(hour=9, minute=0, second=0, tzinfo=tz_eastern)
-time_rankings = time(hour=17, minute=0, second=0, tzinfo=tz_eastern)
+time_rollover = time(hour=0, minute=1, second=0)
+time_calculate = time(hour=0, minute=30, second=0)
+time_leaderboard = time(hour=3, minute=0, second=0)
+time_ratings = time(hour=9, minute=0, second=0)
+time_rankings = time(hour=17, minute=0, second=0)
 
 class WordleBot(commands.Cog):
     def __init__(self, bot, config):
@@ -332,6 +331,10 @@ class WordleBot(commands.Cog):
             return False
         data = self.wordle.update_registration(name, 'discord', ctx.message.author.name)
         await ctx.send(f"Successfully updated @{data['player_uuid']} to {data['player_name']}")
+    
+    @commands.command()
+    async def diagnose(self, ctx):
+        await ctx.send(f"Checking in, it is currently {date.today()}")
 
 # ---
 # Get this show on the road

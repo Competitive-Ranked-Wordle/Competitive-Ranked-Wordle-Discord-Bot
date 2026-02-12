@@ -38,11 +38,13 @@ from bin.wordle_api_handler import WordleAPI
 # 9:00AM: Post the daily ratings (Mon - Sat), Weekly rankings (Sun)
 # 5:00PM: Post the daily rankings
 
-time_rollover = time(hour=0, minute=1, second=0)
-time_calculate = time(hour=0, minute=30, second=0)
-time_leaderboard = time(hour=3, minute=0, second=0)
-time_ratings = time(hour=9, minute=0, second=0)
-time_rankings = time(hour=17, minute=0, second=0)
+TZ_EST = ZoneInfo("America/New_York")
+
+time_rollover = time(hour=0, minute=1, second=0, tzinfo=TZ_EST)
+time_calculate = time(hour=0, minute=30, second=0, tzinfo=TZ_EST)
+time_leaderboard = time(hour=3, minute=0, second=0, tzinfo=TZ_EST)
+time_ratings = time(hour=9, minute=0, second=0, tzinfo=TZ_EST)
+time_rankings = time(hour=17, minute=0, second=0, tzinfo=TZ_EST)
 
 class WordleBot(commands.Cog):
     def __init__(self, bot, config):
